@@ -1,84 +1,139 @@
 import './App.css';
 import React, { useState } from 'react';
 
-type Note = {
+type Task = {
   id: number,
   title: string;
-  content:string
+  content: string
 }
 
-const App = () =>{
-  const [notes, setNotes] = useState<Note[]>([
+const App = () => {
+  const [tasks, setTasks] = useState<Task[]>([
     {
-      id:1,
-      title:"Going to the gym",
+      id: 1,
+      title: "Going to the gym",
       content: "today i m gonna train my legs and glutes"
     },
     {
-      id:2,
-      title:"Going to the gym",
+      id: 2,
+      title: "Going to the gym",
       content: "today i m gonna train my biceps, tricpes, shoulders and back"
     },
     {
-      id:3,
-      title:"!!! Going to the gym",
+      id: 3,
+      title: "!!! Going to the gym",
       content: "today i m gonna train my legs: quads and hammstrings "
     },
     {
-      id:4,
-      title:"Going to the gym",
+      id: 4,
+      title: "Going to the gym",
       content: "today i m gonna do some cardio workout"
     }
   ]);
 
-  const [title, setTitle]= useState("");
+  const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
-  const handleSubmit = (event: React.FormEvent) => {
-      event.preventDefault();
-      console.log("title: ", title)
-      console.log("content: ", content)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-      const newTask: Note = {
-         id:notes.length+1,
-         title: title,
-         content: content
-      }
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setTitle(task.title);
+    setContent(task.content);
+  }
 
-      setNotes([newTask, ...notes]);
-      setTitle("");
-      setContent("");
+  const handleAddTask = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    const newTask: Task = {
+      id: tasks.length + 1,
+      title: title,
+      content: content
+    }
+
+    setTasks([newTask, ...tasks]);
+    setTitle("");
+    setContent("");
   };
 
- return (
-  <div className='app-container'>
-    <form className='to-do-form' onSubmit={(event => handleSubmit(event))}>
-      <input 
-        value = {title}
-        onChange ={(event) =>
-        setTitle(event.target.value)}
-        placeholder='Title' required></input>
-      <textarea 
-        value = {content}
-        onChange = {(event) => setContent(event.target.value)}
-        placeholder='Content' rows={10} required/>
+  const handleUpdate = (event: React.FormEvent) => {
+    event.preventDefault();
 
-      <button type="submit">Add Note</button>
-    </form>
+    if (!selectedTask) {
+      return;
+    }
 
-    <div className='to-do-grid'>
-      {notes.map((note) => (
-            <div className='note-item'>
-        <div className='note-header'>
-          <button>X</button>
-        </div>
-        <h3>{note.title}</h3>
-        <p>{note.content}</p>
+    const updatedTask: Task = {
+      id: selectedTask.id,
+      title: title,
+      content: content
+    }
+
+    const updatedTasksList = tasks.map((task) =>
+      task.id === selectedTask.id
+        ? updatedTask : task);
+
+    setTasks(updatedTasksList);
+    setTitle("");
+    setContent("");
+    setSelectedTask(null);
+  }
+
+  const handleCancel = () => {
+    setTitle("");
+    setContent("");
+    setSelectedTask(null);
+  }
+
+  const handleDeleteTask = (event: React.MouseEvent, taskId: number) => {
+    event.stopPropagation();
+
+    const updatedTasksList = tasks.filter(
+      (task) => task.id !== taskId
+    )
+
+    setTasks(updatedTasksList);
+  };
+
+  return (
+    <div className='app-container'>
+      <form className='to-do-form' onSubmit={(event =>
+        selectedTask ? handleUpdate(event) : handleAddTask(event))}>
+        <input
+          value={title}
+          onChange={(event) =>
+            setTitle(event.target.value)}
+          placeholder='Title' required></input>
+        <textarea
+          value={content}
+          onChange={(event) => setContent(event.target.value)}
+          placeholder='Content' rows={10} required></textarea>
+
+        {selectedTask ? (
+          <div className="edit-buttons">
+            <button type="submit">Save</button>
+            <button type="button" onClick={handleCancel}>Cancel</button>
+          </div>
+        ) : (
+          <button type="submit">Add Task</button>
+        )}
+      </form>
+
+      <div className='to-do-grid'>
+        {tasks.map((task) => (
+          <div
+            className='task-item'
+            onClick={() => handleTaskClick(task)}>
+            <div className='task-header'>
+              <button onClick={(event) => handleDeleteTask(event, task.id)}>X</button>
+            </div>
+            <h3>{task.title}</h3>
+            <p>{task.content}</p>
+          </div>
+        ))}
       </div>
-      ))}
     </div>
-  </div>
- )
+  )
 }
 
 export default App;
