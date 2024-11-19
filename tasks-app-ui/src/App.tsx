@@ -1,5 +1,5 @@
 import './App.css';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 type Task = {
   id: number,
@@ -9,26 +9,6 @@ type Task = {
 
 const App = () => {
   const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: 1,
-      title: "Going to the gym",
-      content: "today i m gonna train my legs and glutes"
-    },
-    {
-      id: 2,
-      title: "Going to the gym",
-      content: "today i m gonna train my biceps, tricpes, shoulders and back"
-    },
-    {
-      id: 3,
-      title: "!!! Going to the gym",
-      content: "today i m gonna train my legs: quads and hammstrings "
-    },
-    {
-      id: 4,
-      title: "Going to the gym",
-      content: "today i m gonna do some cardio workout"
-    }
   ]);
 
   const [title, setTitle] = useState("");
@@ -36,47 +16,87 @@ const App = () => {
 
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/tasks");
+        console.log(response)
+        const tasks: Task[] = await response.json();
+
+        setTasks(tasks);
+
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchTasks();
+  }, []);
+
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
     setTitle(task.title);
     setContent(task.content);
   }
 
-  const handleAddTask = (event: React.FormEvent) => {
+  const handleAddTask = async (event: React.FormEvent) => {
     event.preventDefault();
+    try {
+      const response = await fetch("http://localhost:5000/api/tasks",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            title,
+            content
+          })
+        }
+      )
+      const newTask = await response.json();
 
-    const newTask: Task = {
-      id: tasks.length + 1,
-      title: title,
-      content: content
+      setTasks([newTask, ...tasks]);
+      setTitle("");
+      setContent("");
+    } catch (error) {
+      console.log(error);
     }
-
-    setTasks([newTask, ...tasks]);
-    setTitle("");
-    setContent("");
   };
 
-  const handleUpdate = (event: React.FormEvent) => {
+  const handleUpdate = async (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!selectedTask) {
       return;
     }
 
-    const updatedTask: Task = {
-      id: selectedTask.id,
-      title: title,
-      content: content
+    try {
+      const response = await fetch(`http://localhost:5000/api/tasks/${selectedTask.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            title,
+            content
+          })
+        }
+      )
+      const updatedTask = await response.json();
+
+      const updatedTasksList = tasks.map((task) =>
+        task.id === selectedTask.id
+          ? updatedTask : task);
+
+      setTasks(updatedTasksList);
+      setTitle("");
+      setContent("");
+      setSelectedTask(null);
+    } catch (error) {
+      console.log(error);
     }
-
-    const updatedTasksList = tasks.map((task) =>
-      task.id === selectedTask.id
-        ? updatedTask : task);
-
-    setTasks(updatedTasksList);
-    setTitle("");
-    setContent("");
-    setSelectedTask(null);
   }
 
   const handleCancel = () => {
@@ -85,14 +105,26 @@ const App = () => {
     setSelectedTask(null);
   }
 
-  const handleDeleteTask = (event: React.MouseEvent, taskId: number) => {
+  const handleDeleteTask = async (event: React.MouseEvent, taskId: number) => {
     event.stopPropagation();
 
-    const updatedTasksList = tasks.filter(
-      (task) => task.id !== taskId
-    )
+    try {
+      await fetch(`http://localhost:5000/api/tasks/${taskId}`,
+        {
+          method: "DELETE",
+        }
+      )
 
-    setTasks(updatedTasksList);
+      const updatedTasksList = tasks.filter(
+        (task) => task.id !== taskId
+      )
+
+      setTasks(updatedTasksList);
+
+    } catch (error) {
+      console.log(error);
+    }
+
   };
 
   return (
